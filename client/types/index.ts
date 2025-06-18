@@ -20,8 +20,14 @@ export interface Subtitle {
   downloadCount: number;
   rating: number;
   release: string;
-  format: string;
   size: number;
+  subtitleId: string;
+  uploadDate: string;
+  hd: boolean;
+  fps: number;
+  comments: string;
+  aiTranslated: boolean;
+  machineTranslated: boolean;
 }
 
 export interface DownloadHistoryItem {

@@ -24,13 +24,13 @@ export default function MovieList({
 
   const handleMovieClick = async (movie: Movie) => {
     onMovieSelect(movie);
-    
+
     // 自动搜索字幕
     setLoadingSubtitles(movie.id);
-    
+
     try {
-      const response = await axios.get(`/api/subtitles/search?title=${encodeURIComponent(movie.title)}&year=${movie.year || ''}`);
-      
+      const response = await axios.get(`/api/subtitles/search?tmdbId=${movie.id}&title=${encodeURIComponent(movie.title)}&year=${movie.year || ''}`);
+
       if (response.data.success) {
         onSubtitleSearch(response.data.data);
       }
@@ -52,24 +52,23 @@ export default function MovieList({
   return (
     <div className="card">
       <h2 className="text-xl font-semibold mb-4">搜索结果 ({movies.length})</h2>
-      
+
       {loading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">搜索中...</p>
         </div>
       )}
-      
+
       <div className="space-y-4">
         {movies.map((movie) => (
           <div
             key={movie.id}
             onClick={() => handleMovieClick(movie)}
-            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-              selectedMovie?.id === movie.id
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedMovie?.id === movie.id
+              ? 'border-primary-500 bg-primary-50'
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
           >
             <div className="flex gap-4">
               {movie.image && (
@@ -79,16 +78,16 @@ export default function MovieList({
                   className="w-16 h-24 object-cover rounded"
                 />
               )}
-              
+
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">{movie.title}</h3>
-                
+
                 {movie.description && (
                   <p className="text-gray-600 text-sm mt-1 line-clamp-2">
                     {movie.description}
                   </p>
                 )}
-                
+
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   {movie.year && (
                     <div className="flex items-center gap-1">
@@ -96,14 +95,14 @@ export default function MovieList({
                       {movie.year}
                     </div>
                   )}
-                  
+
                   {movie.rating && (
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       {movie.rating}
                     </div>
                   )}
-                  
+
                   {movie.runtime && (
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
@@ -111,7 +110,7 @@ export default function MovieList({
                     </div>
                   )}
                 </div>
-                
+
                 {loadingSubtitles === movie.id && (
                   <div className="flex items-center gap-2 mt-2 text-primary-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
@@ -119,7 +118,7 @@ export default function MovieList({
                   </div>
                 )}
               </div>
-              
+
               <div className="flex items-center">
                 <Play className="w-5 h-5 text-gray-400" />
               </div>

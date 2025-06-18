@@ -38,7 +38,7 @@ app.use((err, req, res, next) => {
 // 启动服务器
 app.listen(PORT, () => {
   logger.info(`服务器运行在端口 ${PORT}`);
-  
+
   // 启动文件监控
   if (process.env.MOVIE_WATCH_DIR) {
     fileWatcher.startWatching();
