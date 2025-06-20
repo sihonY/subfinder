@@ -67,14 +67,14 @@ router.post('/download', async (req, res) => {
     const subtitlePath = path.join(downloadDir, fileName);
 
     // 下载字幕
-    await opensubtitlesService.downloadSubtitle(subtitleId, subtitlePath);
+    const actualFilePath = await opensubtitlesService.downloadSubtitle(subtitleId, subtitlePath);
 
     res.json({
       success: true,
       data: {
-        filePath: subtitlePath,
-        fileName: fileName,
-        size: (await fs.stat(subtitlePath)).size,
+        filePath: actualFilePath,
+        fileName: path.basename(actualFilePath),
+        size: (await fs.stat(actualFilePath)).size,
         directory: downloadDir
       }
     });

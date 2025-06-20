@@ -1,16 +1,18 @@
 export interface Movie {
   id: string;
   title: string;
+  originalTitle?: string;
   description?: string;
   image?: string;
   year?: string;
   plot?: string;
   poster?: string;
-  rating?: string;
+  rating?: number;
   director?: string;
   cast?: string;
   genres?: string;
   runtime?: string;
+  resultType?: string;
 }
 
 export interface Subtitle {

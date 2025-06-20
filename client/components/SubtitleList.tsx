@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Download, Star, FileText, Globe, Clock, MessageSquare, Sparkles, Monitor } from 'lucide-react';
+import { Download, Star, FileText, Globe, Clock, MessageSquare, Sparkles, Monitor, Languages, Users, HardDrive } from 'lucide-react';
 import { Subtitle } from '../types';
 
 interface Directory {
@@ -100,14 +100,80 @@ export default function SubtitleList({ subtitles, movieTitle }: SubtitleListProp
     return languages[code] || code;
   };
 
+  const getQualityBadge = (subtitle: Subtitle) => {
+    const badges = [];
+
+    if (subtitle.hd) {
+      badges.push(
+        <span key="hd" className="badge badge-primary flex items-center gap-1">
+          <Monitor className="w-3 h-3" />
+          HD
+        </span>
+      );
+    }
+
+    if (subtitle.aiTranslated) {
+      badges.push(
+        <span key="ai" className="badge badge-success flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />
+          AI翻译
+        </span>
+      );
+    }
+
+    if (subtitle.machineTranslated) {
+      badges.push(
+        <span key="machine" className="badge badge-warning flex items-center gap-1">
+          <Languages className="w-3 h-3" />
+          机器翻译
+        </span>
+      );
+    }
+
+    return badges;
+  };
+
+  if (subtitles.length === 0) {
+    return (
+      <div className="card lg:sticky lg:top-6">
+        <div className="empty-state">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-6 h-6 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无字幕</h3>
+          <p className="text-gray-500 text-sm text-center">
+            未找到匹配的字幕文件
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="card">
-        <h2 className="text-xl font-semibold mb-4">
-          字幕列表 ({subtitles.length})
-        </h2>
+      <div className="card lg:sticky lg:top-6">
+        {/* 头部 */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <FileText className="w-4 h-4 text-white" />
+              </div>
+              字幕列表
+            </h2>
+            <p className="text-gray-600 text-sm mt-1">
+              为《{movieTitle}》找到 {subtitles.length} 个字幕文件
+            </p>
+          </div>
 
-        <div className="space-y-3">
+          {/* 排序说明 */}
+          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
+            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+            <span>按质量排序</span>
+          </div>
+        </div>
+
+        <div className="space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
           {subtitles
             .sort((a, b) => {
               // 优先按rating排序，没有rating则按downloadCount排序
@@ -121,136 +187,193 @@ export default function SubtitleList({ subtitles, movieTitle }: SubtitleListProp
               // rating相同时按downloadCount排序
               return (b.downloadCount || 0) - (a.downloadCount || 0);
             })
-            .map((subtitle) => (
+            .map((subtitle, index) => (
               <div
                 key={subtitle.id}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="group border border-gray-200 rounded-2xl p-4 hover:border-gray-300 hover:shadow-md transition-all duration-200 bg-white"
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-gray-900 flex-1">
-                        {subtitle.fileName}
-                      </h3>
-                      <div className="flex gap-1">
-                        {subtitle.hd && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            <Monitor className="w-3 h-3 mr-1" />
-                            HD
-                          </span>
-                        )}
-                        {subtitle.aiTranslated && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            AI翻译
-                          </span>
-                        )}
-                      </div>
+                {/* 文件名和标签 */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 text-sm leading-tight text-truncate-2">
+                      {subtitle.fileName}
+                    </h3>
+
+                    {/* 质量标签 */}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {getQualityBadge(subtitle)}
                     </div>
                   </div>
 
+                  {/* 下载按钮 */}
                   <button
                     onClick={() => handleDownloadClick(subtitle)}
                     disabled={downloading === subtitle.id}
-                    className="ml-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn btn-primary btn-sm flex items-center gap-2 flex-shrink-0"
                   >
-                    <Download className="w-4 h-4" />
-                    {downloading === subtitle.id ? '下载中...' : '下载'}
+                    {downloading === subtitle.id ? (
+                      <>
+                        <div className="w-3 h-3 loading-spinner" />
+                        <span className="hidden sm:inline">下载中</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3 h-3" />
+                        <span className="hidden sm:inline">下载</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
-                  <div className="flex items-center gap-1">
-                    <Globe className="w-3 h-3" />
-                    {getLanguageName(subtitle.language)}
+                {/* 详细信息 */}
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{getLanguageName(subtitle.language)}</span>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <FileText className="w-3 h-3" />
-                    {subtitle.release ? subtitle.release : '-'}
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3 h-3 flex-shrink-0" />
+                    <span>{subtitle.downloadCount?.toLocaleString() || 0}</span>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    {typeof subtitle.rating === 'number' && subtitle.rating > 0
-                      ? subtitle.rating.toFixed(1)
-                      : '-'}
+                  <div className="flex items-center gap-2">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                    <span>
+                      {typeof subtitle.rating === 'number' && subtitle.rating > 0
+                        ? subtitle.rating.toFixed(1)
+                        : '无评分'}
+                    </span>
                   </div>
 
-                  {subtitle.fps > 0 && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs">FPS: {subtitle.fps}</span>
-                    </div>
-                  )}
-
-                  {subtitle.uploadDate && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDate(subtitle.uploadDate)}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-3 h-3 flex-shrink-0" />
+                    <span>{formatFileSize(subtitle.size || 0)}</span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                  <span>下载次数: {subtitle.downloadCount?.toLocaleString() || 0}</span>
-                  {subtitle.comments && (
-                    <div className="flex items-center gap-1" title={subtitle.comments}>
-                      <MessageSquare className="w-3 h-3" />
-                      <span className="truncate max-w-32">{subtitle.comments}</span>
+                {/* 额外信息 */}
+                {(subtitle.release || subtitle.uploadDate || subtitle.fps > 0) && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      {subtitle.release && (
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          <span className="truncate max-w-24">{subtitle.release}</span>
+                        </div>
+                      )}
+
+                      {subtitle.fps > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span>FPS: {subtitle.fps}</span>
+                        </div>
+                      )}
+
+                      {subtitle.uploadDate && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(subtitle.uploadDate)}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    {/* 评论 */}
+                    {subtitle.comments && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <MessageSquare className="w-3 h-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-gray-600 text-truncate-2">
+                            {subtitle.comments}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
+        </div>
+
+        {/* 底部提示 */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-500 text-center">
+            按质量和下载次数排序 · 支持多种格式
+          </p>
         </div>
       </div>
 
       {/* 目录选择模态框 */}
       {showDirectoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">选择保存位置</h3>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">选择保存位置</h3>
 
-            {loadingDirectories ? (
-              <div className="text-center py-4">加载目录中...</div>
-            ) : (
-              <>
-                <div className="space-y-2 mb-4">
-                  {/* 默认位置选项 */}
-                  <button
-                    onClick={() => handleDownload()}
-                    className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="font-medium">默认下载目录</div>
-                    <div className="text-sm text-gray-500">使用系统配置的默认字幕下载目录</div>
-                  </button>
-
-                  {/* 电影目录选项 */}
-                  {directories.map((directory) => (
+              {loadingDirectories ? (
+                <div className="empty-state">
+                  <div className="w-8 h-8 loading-spinner mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">加载目录中...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                    {/* 默认位置选项 */}
                     <button
-                      key={directory.path}
-                      onClick={() => handleDownload(directory.path)}
-                      className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => handleDownload()}
+                      className="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
                     >
-                      <div className="font-medium">{directory.name}</div>
-                      <div className="text-sm text-gray-500">{directory.path}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <Download className="w-5 h-5 text-primary-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">默认下载目录</div>
+                          <div className="text-sm text-gray-500">使用系统配置的默认字幕下载目录</div>
+                        </div>
+                      </div>
                     </button>
-                  ))}
-                </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowDirectoryModal(false);
-                      setSelectedSubtitle(null);
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    取消
-                  </button>
-                </div>
-              </>
-            )}
+                    {/* 电影目录选项 */}
+                    {directories.map((directory) => (
+                      <button
+                        key={directory.path}
+                        onClick={() => handleDownload(directory.path)}
+                        className="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 truncate">{directory.name}</div>
+                            <div className="text-sm text-gray-500 truncate">{directory.path}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+
+                    {directories.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <p className="text-sm">未找到电影目录</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowDirectoryModal(false);
+                        setSelectedSubtitle(null);
+                      }}
+                      className="flex-1 btn btn-secondary"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

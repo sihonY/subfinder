@@ -8,12 +8,24 @@
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
     "build": "cd client && npm run build",
+    "build:all": "npm run install-all && npm run build",
     "start": "cd server && npm start",
+    "start:unified": "npm run build && cd server && npm start",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
-    "test": "cd server && npm test",
-    "test:coverage": "cd server && npm run test:coverage"
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js",
+    "pm2:logs": "pm2 logs",
+    "pm2:status": "pm2 status",
+    "pm2:monit": "pm2 monit",
+    "deploy": "npm run build:all && npm run pm2:restart"
   },
-  "keywords": ["subtitles", "movies", "download"],
+  "keywords": [
+    "subtitles",
+    "movies",
+    "download"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -22,4 +34,4 @@
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}

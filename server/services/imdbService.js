@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 class TMDBService {
   constructor() {
     this.apiKey = process.env.TMDB_API_KEY;
-    this.baseUrl = 'https://api.themoviedb.org/3';
+    this.baseUrl = 'https://api.tmdb.org/3';
 
     // 配置axios实例
     this.axiosInstance = axios.create({
@@ -65,7 +65,7 @@ class TMDBService {
         title: movie.title,
         originalTitle: movie.original_title,
         description: movie.overview,
-        image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        image: movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : null,
         year: movie.release_date ? movie.release_date.split('-')[0] : null,
         rating: movie.vote_average,
         resultType: 'Movie'
@@ -108,7 +108,7 @@ class TMDBService {
         originalTitle: movie.original_title,
         year: movie.release_date ? movie.release_date.split('-')[0] : null,
         plot: movie.overview,
-        poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        poster: movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : null,
         rating: movie.vote_average,
         director: movie.credits?.crew?.find(person => person.job === 'Director')?.name || '',
         cast: movie.credits?.cast?.slice(0, 5).map(person => person.name).join(', ') || '',

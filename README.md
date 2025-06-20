@@ -61,12 +61,16 @@ cp env.example .env
 
 编辑 `.env` 文件，配置必要的API密钥：
 ```env
-# IMDB API配置
-IMDB_API_KEY=your_imdb_api_key_here
+# TMDB API配置
+TMDB_API_KEY=your_tmdb_api_key_here
 
 # OpenSubtitles API配置
 OPENSUBTITLES_API_KEY=your_opensubtitles_api_key_here
-OPENSUBTITLES_USER_AGENT=your_user_agent_here
+# OpenSubtitles账号密码（下载字幕必需）
+OPENSUBTITLES_USERNAME=your_opensubtitles_username
+OPENSUBTITLES_PASSWORD=your_opensubtitles_password
+# User-Agent可选，默认使用Chrome浏览器User-Agent
+# OPENSUBTITLES_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
 
 # DeepSeek AI API配置
 DEEPSEEK_API_KEY=your_deepseek_api_key_here
@@ -76,11 +80,27 @@ MOVIE_WATCH_DIR=G:/Movies
 SUBTITLE_DOWNLOAD_DIR=G:/Subtitles
 
 # 服务器配置
-PORT=3001
-CLIENT_PORT=3000
+PORT=3001                   # 后端服务端口
+CLIENT_PORT=3000           # 前端服务端口
 
 # 字幕语言偏好（逗号分隔）
 PREFERRED_LANGUAGES=zh-CN,zh,en
+
+# SOCKS代理配置（推荐使用）
+USE_SOCKS_PROXY=true
+SOCKS_PROXY_HOST=127.0.0.1
+SOCKS_PROXY_PORT=10808
+
+# HTTP代理配置（备选方案）
+# 如果遇到网络超时或连接问题，可以配置代理
+# 常见的代理软件端口：Clash(7890)、V2Ray(10809)、Shadowsocks(1080)
+# PROXY_HOST=127.0.0.1
+# PROXY_PORT=10809
+# PROXY_PROTOCOL=http
+
+# 或者使用环境变量方式（优先级更高）
+# HTTP_PROXY=http://127.0.0.1:10809
+# HTTPS_PROXY=http://127.0.0.1:10809
 ```
 
 ### 2. 安装依赖
@@ -141,7 +161,6 @@ subtitles_finder/
 │   │   └── subtitles.js
 │   ├── utils/             # 工具函数
 │   │   └── logger.js
-│   ├── __tests__/         # 测试用例
 │   └── index.js           # 服务入口
 ├── client/                # 前端应用
 │   ├── app/              # Next.js App Router
@@ -151,29 +170,6 @@ subtitles_finder/
 ├── env.example           # 环境变量示例
 └── README.md
 ```
-
-## 测试
-
-### 运行测试
-```bash
-# 后端测试
-cd server
-npm test
-
-# 测试覆盖率
-npm run test:coverage
-
-# 监听模式
-npm run test:watch
-```
-
-### 测试覆盖
-- ✅ 日志工具模块
-- ✅ IMDB服务模块
-- ✅ OpenSubtitles服务模块
-- ✅ DeepSeek AI服务模块
-- ✅ 文件监控模块
-- ✅ 电影处理模块
 
 ## API文档
 
@@ -228,15 +224,84 @@ GET /api/subtitles/history
 1. 在 `server/services/` 中创建服务模块
 2. 在 `server/routes/` 中添加API路由
 3. 在 `client/components/` 中创建UI组件
-4. 编写对应的测试用例
 
 ### 部署
-```bash
-# 构建前端
-npm run build
 
-# 启动生产服务
-npm start
+#### 开发环境
+```bash
+# 开发模式（同时启动前后端）
+npm run dev
+
+# 或者分别启动
+npm run server  # 后端服务 (端口3001)
+npm run client  # 前端服务 (端口3000)
+```
+
+#### 生产环境 (PM2)
+
+**1. 安装PM2**
+```bash
+npm install -g pm2
+```
+
+**2. 配置环境变量**
+```bash
+cp env.example .env
+# 编辑.env文件，配置所有必要的API密钥和参数
+```
+
+**3. 一键部署**
+```bash
+# Linux/Mac
+chmod +x deploy.sh
+./deploy.sh
+
+# Windows
+deploy.bat
+
+# 或者使用npm脚本
+npm run deploy
+```
+
+**4. PM2管理命令**
+```bash
+# 启动服务
+npm run pm2:start
+
+# 查看状态
+npm run pm2:status
+
+# 查看日志
+npm run pm2:logs
+
+# 重启服务
+npm run pm2:restart
+
+# 停止服务
+npm run pm2:stop
+
+# 删除服务
+npm run pm2:delete
+
+# 监控面板
+npm run pm2:monit
+```
+
+**5. 服务配置**
+- **后端服务**: `subtitles-finder-server` - 运行在配置的PORT端口（默认3001）
+- **前端服务**: `subtitles-finder-client` - 运行在配置的CLIENT_PORT端口（默认3000）
+- **日志文件**: 保存在 `./logs/` 目录下
+- **自动重启**: 内存使用超过限制时自动重启
+
+**6. 开机自启动**
+```bash
+# 保存当前PM2进程列表
+pm2 save
+
+# 生成开机启动脚本
+pm2 startup
+
+# 按照提示执行生成的命令（需要管理员权限）
 ```
 
 ## 许可证
@@ -254,5 +319,4 @@ MIT License
 - ✨ 支持电影搜索和字幕下载
 - 🤖 集成AI智能处理
 - 📁 自动文件监控功能
-- 📊 完整的日志系统
-- 🧪 全面的测试覆盖 
+- 📊 完整的日志系统 

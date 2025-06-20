@@ -18,6 +18,14 @@ class MovieProcessor {
     try {
       logger.info(`开始处理电影文件: ${movieFilePath}`);
 
+      // 0. 首先检查是否已安装字幕（通过标记文件）
+      const movieDir = path.dirname(movieFilePath);
+      const hasSubtitleInstalled = await this.checkSubtitleInstalled(movieDir);
+      if (hasSubtitleInstalled) {
+        logger.info(`跳过处理，目录已安装字幕: ${movieFilePath}`);
+        return;
+      }
+
       // 1. 提取电影名称（直接使用文件名，不扫描目录）
       const movieName = await this.extractMovieNameFromFile(movieFilePath);
       logger.info(`提取的电影名称: ${movieName}`);
@@ -221,13 +229,55 @@ class MovieProcessor {
   }
 
   /**
-   * 检查目录中是否已存在字幕文件
+   * 检查目录是否已安装字幕（通过标记文件）
+   * @param {string} movieDir - 电影目录
+   * @returns {Promise<boolean>} 是否已安装字幕
+   */
+  async checkSubtitleInstalled(movieDir) {
+    try {
+      const markerPath = path.join(movieDir, '.subinstalled');
+      const exists = await fs.pathExists(markerPath);
+      if (exists) {
+        logger.info(`发现字幕安装标记文件，跳过处理: ${movieDir}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('检查字幕安装标记失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 创建字幕安装标记文件
+   * @param {string} movieDir - 电影目录
+   */
+  async createSubtitleInstalledMarker(movieDir) {
+    try {
+      const markerPath = path.join(movieDir, '.subinstalled');
+      const timestamp = new Date().toISOString();
+      await fs.writeFile(markerPath, `字幕安装时间: ${timestamp}\n`);
+      logger.info(`创建字幕安装标记文件: ${markerPath}`);
+    } catch (error) {
+      logger.error('创建字幕安装标记文件失败:', error);
+    }
+  }
+
+  /**
+   * 检查目录中是否已存在字幕文件（备用方法）
    * @param {string} movieDir - 电影目录
    * @param {string} movieName - 电影名称
    * @returns {Promise<boolean>} 是否存在字幕文件
    */
   async checkSubtitleExists(movieDir, movieName) {
     try {
+      // 优先检查标记文件
+      const hasMarker = await this.checkSubtitleInstalled(movieDir);
+      if (hasMarker) {
+        return true;
+      }
+
+      // 如果没有标记文件，检查实际字幕文件
       const files = await fs.readdir(movieDir);
       const subtitleExtensions = ['.srt', '.ass', '.ssa', '.sub', '.vtt'];
 
@@ -241,12 +291,16 @@ class MovieProcessor {
           // 检查是否匹配电影名称
           if (fileName.includes(movieNameLower) || movieNameLower.includes(fileName)) {
             logger.info(`发现已存在的字幕文件: ${file}`);
+            // 为现有字幕创建标记文件
+            await this.createSubtitleInstalledMarker(movieDir);
             return true;
           }
 
           // 检查是否有中文标识的字幕文件
           if (fileName.includes('chinese') || fileName.includes('zh') || fileName.includes('cn')) {
             logger.info(`发现已存在的中文字幕文件: ${file}`);
+            // 为现有字幕创建标记文件
+            await this.createSubtitleInstalledMarker(movieDir);
             return true;
           }
         }
@@ -275,10 +329,20 @@ class MovieProcessor {
         return;
       }
 
-      // 确定下载路径
+      // 确定下载路径 - 使用视频文件名（不含扩展名）+ 字幕扩展名
       const movieDir = path.dirname(movieFilePath);
       const movieName = path.parse(movieFilePath).name;
-      const subtitleExt = path.extname(bestSubtitle.fileName);
+
+      // 从原始字幕文件名中提取扩展名，如果没有则默认使用.srt
+      let subtitleExt = '.srt';
+      if (bestSubtitle.fileName) {
+        const originalExt = path.extname(bestSubtitle.fileName);
+        if (originalExt) {
+          subtitleExt = originalExt;
+        }
+      }
+
+      // 构建与视频文件同名的字幕文件路径
       const subtitlePath = path.join(movieDir, `${movieName}${subtitleExt}`);
 
       // 检查是否已存在字幕文件
@@ -294,13 +358,23 @@ class MovieProcessor {
         return;
       }
 
-      // 下载字幕
-      await opensubtitlesService.downloadSubtitle(bestSubtitle.id, subtitlePath);
+      logger.info(`准备下载字幕: ${bestSubtitle.fileName} -> ${path.basename(subtitlePath)}`);
+
+      // 下载字幕到临时文件
+      const tempPath = path.join(movieDir, `temp_${Date.now()}${subtitleExt}`);
+      const downloadedPath = await opensubtitlesService.downloadSubtitle(bestSubtitle.id, tempPath);
+
+      // 重命名为与视频文件同名
+      await fs.move(downloadedPath, subtitlePath, { overwrite: true });
+      logger.info(`字幕文件已重命名为与视频文件同名: ${path.basename(subtitlePath)}`);
 
       // 如果是英语字幕且不是首选语言，尝试翻译
       if (bestSubtitle.language === 'en' && !this.preferredLanguages.includes('en')) {
         await this.translateSubtitle(subtitlePath);
       }
+
+      // 创建标记文件，表示该目录已处理过字幕
+      await this.createSubtitleInstalledMarker(movieDir);
 
       logger.info(`字幕下载完成: ${subtitlePath}`);
 
@@ -397,6 +471,30 @@ class MovieProcessor {
     }
 
     return false;
+  }
+
+  /**
+   * 手动为目录创建字幕安装标记（用于已有字幕的目录）
+   * @param {string} movieDir - 电影目录
+   */
+  async markSubtitleInstalled(movieDir) {
+    await this.createSubtitleInstalledMarker(movieDir);
+  }
+
+  /**
+   * 移除字幕安装标记（用于重新处理）
+   * @param {string} movieDir - 电影目录
+   */
+  async removeSubtitleInstalledMarker(movieDir) {
+    try {
+      const markerPath = path.join(movieDir, '.subinstalled');
+      if (await fs.pathExists(markerPath)) {
+        await fs.remove(markerPath);
+        logger.info(`移除字幕安装标记文件: ${markerPath}`);
+      }
+    } catch (error) {
+      logger.error('移除字幕安装标记文件失败:', error);
+    }
   }
 }
 
